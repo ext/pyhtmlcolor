@@ -1,6 +1,10 @@
 Documentation
 =============
 
+The htmlcolor module parses HTML/CSS colors. It accepts regular hexadecimal
+notation, CSS shorthand notation and named colors. In addition it also supports
+four-component colors such as RGBA.
+
 Sample usage
 ------------
 

@@ -1,0 +1,14 @@
+The htmlcolor module parses HTML/CSS colors. It accepts regular hexadecimal
+notation, CSS shorthand notation and named colors. In addition it also supports
+four-component colors such as RGBA.
+
+>>> import htmlcolor
+>>> parser = htmlcolor.Parser()
+>>> parser.parse('#ff7700')
+(255, 119, 0)
+>>> parser.parse('#f70')
+(255, 119, 0)
+>>> parser.parse('hotpink')
+(255, 105, 180)
+>>> parser.parse('ff7700')
+(255, 119, 0)
