@@ -13,21 +13,19 @@ from names import names
 DecimalFactory = lambda v: int(v,16)
 FloatFactory = lambda v: int(v,16)/255.0
 HexFactory = lambda v: v
-ResultClass = DecimalFactory
-ColorComponents = 3
 
 # Get a list of all hexadecimal digits.
 _hex_literals = [hex(v)[-1] for v in range(0,16)]
 
 def enforceComponents():
     def decorate(func):
-        def wrapper(*args, **kwargs):
-            n = ColorComponents
-            fill = ResultClass('ff')
+        def wrapper(self, *args, **kwargs):
+            n = self.Components
+            fill = self.ResultFactory(self.Fill)
             
             assert n in [3,4]
             
-            result = func(*args, **kwargs)
+            result = func(self, *args, **kwargs)
             components = len(result)
             
             if components == n:
@@ -39,173 +37,162 @@ def enforceComponents():
         return wrapper
     return decorate
 
-def _parse_hex(string):
-    if string[0] == '#':
-        string = string[1:]
+class Parser:
+    def __init__(self, factory=DecimalFactory, components=3, fill='ff'):
+        self.ResultFactory = factory
+        self.Components = components
+        self.Fill = fill
     
-    n = len(string)
-    fmt = {
-        3: '([0-9A-Fa-f]{1})' * 3, # shorthand RGB
-        4: '([0-9A-Fa-f]{1})' * 4, # shorthand RGBA
-        6: '([0-9A-Fa-f]{2})' * 3, # RGB
-        8: '([0-9A-Fa-f]{2})' * 4 # RGBA
-    }
-    
-    match = re.match(fmt[n], string)
-    
-    if match:
-        groups = match.groups()
+    @enforceComponents()
+    def parse(self, string):
+        """
+        Parses a HTML/CSS color.
         
-        # shorthand RGB{,A} must be extended
-        if n in [3,4]:
-            groups = tuple([2*x for x in groups])
+        :param string: The string to parse
+        :return: A tuple containing the color components.
+        """
+        if not isinstance(string, basestring):
+            raise ValueError, 'must be a string'
         
-        return groups
-    else:
-        raise ValueError,'Unable to parse "%s"' % (string)
-
-def _parse_name(string):
-    try:
-        return names[string]
-    except KeyError:
-        raise ValueError,'Unrecognized color name "%s"' % (string)
-
-def _detect_format(string):
-    if string[0] == '#':
-        return _parse_hex
-    elif [item for item in string if item not in _hex_literals] == []:
-        return _parse_hex
-    else:
-        return _parse_name
-
-@enforceComponents()
-def parse(string):
-    """
-    Parses a HTML/CSS color.
+        func = self._detect_format(string)
+        result = func(string)
+        
+        return tuple([self.ResultFactory(x) for x in result])
     
-    :param string: The string to parse
-    :return: A tuple containing the color components.
-    """
-    if not isinstance(string, basestring):
-        raise ValueError, 'must be a string'
+    @staticmethod
+    def _parse_hex(string):
+        if string[0] == '#':
+            string = string[1:]
+        
+        n = len(string)
+        fmt = {
+            3: '([0-9A-Fa-f]{1})' * 3, # shorthand RGB
+            4: '([0-9A-Fa-f]{1})' * 4, # shorthand RGBA
+            6: '([0-9A-Fa-f]{2})' * 3, # RGB
+            8: '([0-9A-Fa-f]{2})' * 4 # RGBA
+        }
+        
+        match = re.match(fmt[n], string)
+        
+        if match:
+            groups = match.groups()
+            
+            # shorthand RGB{,A} must be extended
+            if n in [3,4]:
+                groups = tuple([2*x for x in groups])
+            
+            return groups
+        else:
+            raise ValueError,'Unable to parse "%s"' % (string)
     
-    func = _detect_format(string)
-    result = func(string)
+    @staticmethod
+    def _parse_name(string):
+        try:
+            return names[string]
+        except KeyError:
+            raise ValueError,'Unrecognized color name "%s"' % (string)
     
-    return tuple([ResultClass(x) for x in result])
+    @staticmethod
+    def _detect_format(string):
+        if string[0] == '#':
+            return Parser._parse_hex
+        elif [item for item in string if item not in _hex_literals] == []:
+            return Parser._parse_hex
+        else:
+            return Parser._parse_name
 
 class factory_test(unittest.TestCase):
+    def setUp(self):
+        self.p = Parser()
+    
     def test_decimal(self):
-        global ResultClass, ColorComponents
-        ResultClass = DecimalFactory
-        ColorComponents = 3
-        self.assertEqual(parse('#fff'), (255, 255, 255))
+        self.p.ResultFactory = DecimalFactory
+        self.p.Components = 3
+        self.assertEqual(self.p.parse('#fff'), (255, 255, 255))
     
     def test_float(self):
-        global ResultClass, ColorComponents
-        ResultClass = FloatFactory
-        ColorComponents = 3
-        self.assertEqual(parse('#fff'), (1.0, 1.0, 1.0))
+        self.p.ResultFactory = FloatFactory
+        self.p.Components = 3
+        self.assertEqual(self.p.parse('#fff'), (1.0, 1.0, 1.0))
     
     def test_hex(self):
-        global ResultClass, ColorComponents
-        ResultClass = HexFactory
-        ColorComponents = 3
-        self.assertEqual(parse('#fff'), ('ff', 'ff', 'ff'))
+        self.p.ResultFactory = HexFactory
+        self.p.Components = 3
+        self.assertEqual(self.p.parse('#fff'), ('ff', 'ff', 'ff'))
     
     def test_custom(self):
-        global ResultClass, ColorComponents
-        ResultClass = lambda x: int(x,16) * 2
-        ColorComponents = 3
-        self.assertEqual(parse('#fff'), (510, 510, 510))
+        self.p.ResultFactory = lambda x: int(x,16) * 2
+        self.p.Components = 3
+        self.assertEqual(self.p.parse('#fff'), (510, 510, 510))
 
 class components_test(unittest.TestCase):
+    def setUp(self):
+        self.p = Parser()
+    
     def test_invalid(self):
-        global ResultClass, ColorComponents
-        ResultClass = DecimalFactory
-        ColorComponents = 2
-        self.assertRaises(AssertionError, parse, '#fff')
-        ColorComponents = 5
-        self.assertRaises(AssertionError, parse, '#fff')
+        self.p.ResultFactory = DecimalFactory
+        for c in [2,5]:
+            self.p.Components = c
+            self.assertRaises(AssertionError, self.p.parse, '#fff')
     
     def test_valid(self):
-        global ResultClass, ColorComponents
-        ResultClass = DecimalFactory
-        ColorComponents = 3
-        self.assertEqual(parse('#fff'), (255, 255, 255))
-        ColorComponents = 4
-        self.assertEqual(parse('#ffff'), (255, 255, 255, 255))
+        self.p.ResultFactory = DecimalFactory
+        self.p.Components = 3
+        self.assertEqual(self.p.parse('#fff'), (255, 255, 255))
+        self.p.Components = 4
+        self.assertEqual(self.p.parse('#ffff'), (255, 255, 255, 255))
 
 class test(unittest.TestCase):
+    def setUp(self):
+        self.p = Parser(factory=DecimalFactory, components=3)
+    
     def test_invalid(self):
-        self.assertRaises(ValueError, parse, 0)
+        self.assertRaises(ValueError, self.p.parse, 0)
     
     def test_invalid_hex(self):
-        self.assertRaises(ValueError, parse, '#foobar')
+        self.assertRaises(ValueError, self.p.parse, '#foobar')
     
     def test_short_hex_rgb(self):
-        global ResultClass, ColorComponents
-        ResultClass = DecimalFactory
-        ColorComponents = 3
-        self.assertEqual(parse('#f70'), (255, 119, 0))
+        self.assertEqual(self.p.parse('#f70'), (255, 119, 0))
     
     def test_short_hex_rgba(self):
-        global ResultClass, ColorComponents
-        ResultClass = DecimalFactory
-        ColorComponents = 4
-        self.assertEqual(parse('#f70f'), (255, 119, 0, 255))
+        self.p.Components = 4
+        self.assertEqual(self.p.parse('#f70f'), (255, 119, 0, 255))
     
     def test_decimal_rgb(self):
-        global ResultClass, ColorComponents
-        ResultClass = DecimalFactory
-        ColorComponents = 3
-        self.assertEqual(parse('#ff7700'), (255, 119, 0))
+        self.assertEqual(self.p.parse('#ff7700'), (255, 119, 0))
     
     def test_decimal_rgba_fill(self):
-        global ResultClass, ColorComponents
-        ResultClass = DecimalFactory
-        ColorComponents = 4
-        self.assertEqual(parse('#ff7700'), (255, 119, 0, 255))
+        self.p.Components = 4
+        self.assertEqual(self.p.parse('#ff7700'), (255, 119, 0, 255))
     
     def test_decimal_rgba(self):
-        global ResultClass, ColorComponents
-        ResultClass = DecimalFactory
-        ColorComponents = 4
-        self.assertEqual(parse('#ff770077'), (255, 119, 0, 119))
+        self.p.Components = 4
+        self.assertEqual(self.p.parse('#ff770077'), (255, 119, 0, 119))
 
     def test_float_rgb(self):
-        global ResultClass, ColorComponents
-        ResultClass = FloatFactory
-        ColorComponents = 3
-        [self.assertAlmostEqual(x,y,1) for (x,y) in zip(parse('#ff7700'), (1.0, 0.46, 0.0))]
+        self.p.ResultFactory = FloatFactory
+        [self.assertAlmostEqual(x,y,1) for (x,y) in zip(self.p.parse('#ff7700'), (1.0, 0.46, 0.0))]
     
     def test_float_rgba_fill(self):
-        global ResultClass, ColorComponents
-        ResultClass = FloatFactory
-        ColorComponents = 4
-        [self.assertAlmostEqual(x,y,1) for (x,y) in zip(parse('#ff7700'), (1.0, 0.46, 0.0, 1.0))]
+        self.p.ResultFactory = FloatFactory
+        self.p.Components = 4
+        [self.assertAlmostEqual(x,y,1) for (x,y) in zip(self.p.parse('#ff7700'), (1.0, 0.46, 0.0, 1.0))]
     
     def test_float_rgba(self):
-        global ResultClass, ColorComponents
-        ResultClass = FloatFactory
-        ColorComponents = 4
-        [self.assertAlmostEqual(x,y,1) for (x,y) in zip(parse('#ff770077'), (1.0, 0.46, 0.0, 0.46))]
+        self.p.ResultFactory = FloatFactory
+        self.p.Components = 4
+        [self.assertAlmostEqual(x,y,1) for (x,y) in zip(self.p.parse('#ff770077'), (1.0, 0.46, 0.0, 0.46))]
     
     def test_sign(self):
-        global ResultClass, ColorComponents
-        ResultClass = DecimalFactory
-        ColorComponents = 3
-        self.assertEqual(parse('#ff7700'), (255, 119, 0))
-        self.assertEqual(parse('ff7700'), (255, 119, 0))
+        self.assertEqual(self.p.parse('#ff7700'), (255, 119, 0))
+        self.assertEqual(self.p.parse('ff7700'), (255, 119, 0))
     
     def test_name(self):
-        global ResultClass, ColorComponents
-        ResultClass = DecimalFactory
-        ColorComponents = 3
-        self.assertEqual(parse('red'), (255, 0, 0))
+        self.assertEqual(self.p.parse('red'), (255, 0, 0))
     
     def test_invalid_name(self):
-        self.assertRaises(ValueError, parse, 'foobar')
+        self.assertRaises(ValueError, self.p.parse, 'foobar')
 
 if __name__ == '__main__':
     suite = unittest.TestLoader().loadTestsFromNames(['htmlcolor.test', 'htmlcolor.factory_test', 'htmlcolor.components_test'])
@@ -215,15 +202,16 @@ if __name__ == '__main__':
     print ' *** Sample usage ***'
     
     values = ['#ff7700', 'ff7700', '#f70', '#ff770077', 'hotpink']
+    parser = Parser()
     
     print '\nRGB Decimal factory'
-    ResultClass = DecimalFactory
-    ColorComponents = 3
-    for x in values:
-        print x, '=>', parse(x)
+    parser.ResultFactory = DecimalFactory
+    parser.Components = 3
+    for cur in values:
+        print cur, '=>', parser.parse(cur)
     
     print '\nRGBA Float factory'
-    ResultClass = FloatFactory
-    ColorComponents = 4
-    for x in values:
-        print x, '=>', parse(x)
+    parser.ResultFactory = FloatFactory
+    parser.Components = 4
+    for cur in values:
+        print cur, '=>', parser.parse(cur)
