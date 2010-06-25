@@ -84,6 +84,31 @@ def parse(string):
     
     return tuple([ResultClass(x) for x in result])
 
+class factory_test(unittest.TestCase):
+    def test_decimal(self):
+        global ResultClass, ColorComponents
+        ResultClass = DecimalFactory
+        ColorComponents = 3
+        self.assertEqual(parse('#fff'), (255, 255, 255))
+    
+    def test_float(self):
+        global ResultClass, ColorComponents
+        ResultClass = FloatFactory
+        ColorComponents = 3
+        self.assertEqual(parse('#fff'), (1.0, 1.0, 1.0))
+    
+    def test_hex(self):
+        global ResultClass, ColorComponents
+        ResultClass = HexFactory
+        ColorComponents = 3
+        self.assertEqual(parse('#fff'), ('ff', 'ff', 'ff'))
+    
+    def test_custom(self):
+        global ResultClass, ColorComponents
+        ResultClass = lambda x: int(x,16) * 2
+        ColorComponents = 3
+        self.assertEqual(parse('#fff'), (510, 510, 510))
+
 class test(unittest.TestCase):
     def test_invalid(self):
         self.assertRaises(ValueError, parse, 0)
@@ -156,7 +181,7 @@ class test(unittest.TestCase):
         self.assertRaises(ValueError, parse, 'foobar')
 
 if __name__ == '__main__':
-    suite = unittest.TestLoader().loadTestsFromTestCase(test)
+    suite = unittest.TestLoader().loadTestsFromNames(['htmlcolor.test', 'htmlcolor.factory_test'])
     unittest.TextTestRunner(verbosity=2).run(suite)
     
     print
