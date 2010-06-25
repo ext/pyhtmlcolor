@@ -1,6 +1,10 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+"""
+Parse HTML/CSS colors
+"""
+
 import unittest
 import re
 
@@ -76,6 +80,12 @@ def _detect_format(string):
 
 @enforceComponents()
 def parse(string):
+    """
+    Parses a HTML/CSS color.
+    
+    :param string: The string to parse
+    :return: A tuple containing the color components.
+    """
     if not isinstance(string, basestring):
         raise ValueError, 'must be a string'
     
