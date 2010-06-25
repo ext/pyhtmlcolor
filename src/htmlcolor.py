@@ -31,6 +31,9 @@ def enforceComponents():
 
 @enforceComponents()
 def parse(string):
+    if not isinstance(string, basestring):
+        raise ValueError, 'must be a string'
+    
     if string[0] == '#':
         string = string[1:]
     
@@ -56,6 +59,9 @@ def parse(string):
         return None
 
 class test(unittest.TestCase):
+    def test_invalid(self):
+        self.assertRaises(ValueError, parse, 0)
+    
     def test_decimal_rgb(self):
         global ResultClass, ColorComponents
         ResultClass = DecimalFactory
