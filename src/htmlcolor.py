@@ -158,3 +158,20 @@ class test(unittest.TestCase):
 if __name__ == '__main__':
     suite = unittest.TestLoader().loadTestsFromTestCase(test)
     unittest.TextTestRunner(verbosity=2).run(suite)
+    
+    print
+    print ' *** Sample usage ***'
+    
+    values = ['#ff7700', 'ff7700', '#f70', '#ff770077', 'hotpink']
+    
+    print '\nRGB Decimal factory'
+    ResultClass = DecimalFactory
+    ColorComponents = 3
+    for x in values:
+        print x, '=>', parse(x)
+    
+    print '\nRGBA Float factory'
+    ResultClass = FloatFactory
+    ColorComponents = 4
+    for x in values:
+        print x, '=>', parse(x)
