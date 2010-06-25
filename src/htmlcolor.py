@@ -49,9 +49,6 @@ def parse(string):
     
     if match:
         color = match.groups()
-        if len(color) == 3:
-            color += ('ff',) # force RGBA
-        
         color = tuple([ResultClass(x) for x in color])
         
         return color
