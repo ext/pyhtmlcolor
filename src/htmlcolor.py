@@ -29,14 +29,7 @@ def enforceComponents():
         return wrapper
     return decorate
 
-@enforceComponents()
-def parse(string):
-    if not isinstance(string, basestring):
-        raise ValueError, 'must be a string'
-    
-    if string[0] == '#':
-        string = string[1:]
-    
+def _parse_hex(string):
     n = len(string)
     fmt = {
         3: '([0-9A-Fa-f]{1})' * 3, # shorthand RGB
@@ -54,6 +47,16 @@ def parse(string):
         return color
     else:
         return None
+
+@enforceComponents()
+def parse(string):
+    if not isinstance(string, basestring):
+        raise ValueError, 'must be a string'
+
+    if string[0] == '#':
+        string = string[1:]
+    
+    return _parse_hex(string)
 
 class test(unittest.TestCase):
     def test_invalid(self):
