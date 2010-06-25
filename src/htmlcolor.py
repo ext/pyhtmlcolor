@@ -39,7 +39,7 @@ def parse(string):
         3: '([0-9A-Fa-f]{1})' * 3, # shorthand RGB
         4: '([0-9A-Fa-f]{1})' * 4, # shorthand RGBA
         6: '([0-9A-Fa-f]{2})' * 3, # RGB
-        8: '([0-9A-Fa-f]{2})' * 3 # RGBA
+        8: '([0-9A-Fa-f]{2})' * 4 # RGBA
     }
     
     match = re.match(fmt[n], string)
@@ -67,6 +67,12 @@ class test(unittest.TestCase):
         ResultClass = DecimalFactory
         ColorComponents = 4
         self.assertEqual(parse('#ff7700'), (255, 119, 0, 255))
+    
+    def test_decimal_rgba(self):
+        global ResultClass, ColorComponents
+        ResultClass = DecimalFactory
+        ColorComponents = 4
+        self.assertEqual(parse('#ff770077'), (255, 119, 0, 119))
 
     def test_float_rgb(self):
         global ResultClass, ColorComponents
@@ -79,6 +85,12 @@ class test(unittest.TestCase):
         ResultClass = FloatFactory
         ColorComponents = 4
         [self.assertAlmostEqual(x,y,1) for (x,y) in zip(parse('#ff7700'), (1.0, 0.46, 0.0, 1.0))]
+    
+    def test_float_rgba(self):
+        global ResultClass, ColorComponents
+        ResultClass = FloatFactory
+        ColorComponents = 4
+        [self.assertAlmostEqual(x,y,1) for (x,y) in zip(parse('#ff770077'), (1.0, 0.46, 0.0, 0.46))]
 
 if __name__ == '__main__':
     suite = unittest.TestLoader().loadTestsFromTestCase(test)
