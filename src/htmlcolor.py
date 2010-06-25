@@ -109,6 +109,23 @@ class factory_test(unittest.TestCase):
         ColorComponents = 3
         self.assertEqual(parse('#fff'), (510, 510, 510))
 
+class components_test(unittest.TestCase):
+    def test_invalid(self):
+        global ResultClass, ColorComponents
+        ResultClass = DecimalFactory
+        ColorComponents = 2
+        self.assertRaises(AssertionError, parse, '#fff')
+        ColorComponents = 5
+        self.assertRaises(AssertionError, parse, '#fff')
+    
+    def test_valid(self):
+        global ResultClass, ColorComponents
+        ResultClass = DecimalFactory
+        ColorComponents = 3
+        self.assertEqual(parse('#fff'), (255, 255, 255))
+        ColorComponents = 4
+        self.assertEqual(parse('#ffff'), (255, 255, 255, 255))
+
 class test(unittest.TestCase):
     def test_invalid(self):
         self.assertRaises(ValueError, parse, 0)
@@ -181,7 +198,7 @@ class test(unittest.TestCase):
         self.assertRaises(ValueError, parse, 'foobar')
 
 if __name__ == '__main__':
-    suite = unittest.TestLoader().loadTestsFromNames(['htmlcolor.test', 'htmlcolor.factory_test'])
+    suite = unittest.TestLoader().loadTestsFromNames(['htmlcolor.test', 'htmlcolor.factory_test', 'htmlcolor.components_test'])
     unittest.TextTestRunner(verbosity=2).run(suite)
     
     print
